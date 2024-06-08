@@ -1,4 +1,5 @@
 import torch
+from .fused_compression import low_rank_extraction, low_rank_addition
 
 def hidden_to_head_shape(x: torch.Tensor, num_heads: int):
     bsz, seq_len, hidden_dim = x.shape
@@ -67,6 +68,31 @@ def svd_lowrank_head_decompress(U: torch.tensor, S: torch.tensor, V: torch.tenso
     return output
 
 
+def convert_coo_to_tuple(x_coo):
+    # extract all the elements
+    x_coo_indices = x_coo.indices().to(torch.int16)
+    x_coo_values = x_coo.values()
+    x_coo_size = x_coo.size()
+    x_coo_device = x_coo.device
+    # convert to tuple # indices: int64 -> int16
+    x_coo_tuple = (x_coo_indices, x_coo_values, x_coo_size, x_coo_device)
+    return x_coo_tuple
+
+
+def convert_tuple_to_coo(x_coo_tuple):
+    x_coo_indices = x_coo_tuple[0].to(torch.int64)
+    x_coo_values = x_coo_tuple[1]
+    x_coo_size = x_coo_tuple[2]
+    x_coo_device = x_coo_tuple[3]
+    x_coo = torch.sparse_coo_tensor(
+        indices=x_coo_indices,
+        values=x_coo_values,
+        size=x_coo_size,
+        device=x_coo_device
+    )
+    return x_coo
+
+
 def fake_divide_outlier_suboutlinear_svd(x: torch.Tensor, outlier: float, max_norm_column_list: float, scale: float, rank: int, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1.):
     is_head = len(x.shape) == 4
     if is_head:
@@ -114,7 +140,8 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     
     # step 1: substract the svd base
     tgt_L = torch.zeros((x.shape[-2], L.shape[-1]))
-    x = x - (pad_cut_L(L, tgt_L) @ R)
+    # x = x - (pad_cut_L(L, tgt_L) @ R)
+    x = low_rank_addition(pad_cut_L(L, tgt_L), -R, x)
     
     # step 2: prune the outlier
     mask_1 = (x.abs() > outlier)
@@ -123,6 +150,7 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     # compress the x_outlier
     if torch.sum(scale) != 1.:
         x_outlier_compressed = x_outlier.to(torch.bfloat16).to_sparse() # coo
+        x_outlier_compressed = convert_coo_to_tuple(x_outlier_compressed)
     else:
         x_outlier_compressed = x_outlier
     del x_outlier
@@ -173,11 +201,11 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
 
 # @torch.no_grad
 def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, sub_outlier_bit, scale, is_head = False, num_heads = 1, L = None, R = None):
-    x_outlier = x_outlier_compressed.to_dense()
+    x_outlier = convert_tuple_to_coo(x_outlier_compressed).to_dense()
     
     # step 1: add the base
     tgt_L = torch.zeros((x_outlier.shape[-2], L.shape[-1]))
-    x = (pad_cut_L(L, tgt_L) @ R).to(torch.float32)
+    x = (pad_cut_L(L, tgt_L) @ R).to(torch.bfloat16)
     
     # step 2: add the outliers
     x = x + x_outlier
@@ -231,6 +259,20 @@ def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_
     return x
 
 
+# @torch.no_grad
+def true_compress_softmax(x: torch.Tensor, outlier: float):
+    mask = (x > outlier)
+    x_outlier = x * mask
+    x_outlier_sparse = x_outlier.to(torch.bfloat16).to_sparse()
+    x_outlier_sparse = convert_coo_to_tuple(x_outlier_sparse)
+    return x_outlier_sparse
+
+
+# @torch.no_grad
+def true_decompress_softmax(x_sparse: torch.Tensor):
+    return convert_tuple_to_coo(x_sparse).to_dense()
+
+
 def prune_softmax(x: torch.Tensor, outlier: float):
     mask = (x > outlier)
     x_outlier = x * mask
@@ -246,41 +288,31 @@ def profile_memory(name):
     print('--------------------------------------------------')
 
 # @torch.no_grad
-def true_compress_softmax(x: torch.Tensor, outlier: float):
-    mask = (x > outlier)
-    x_outlier = x * mask
-    x_outlier_sparse = x_outlier.to(torch.bfloat16).to_sparse()
-    return x_outlier_sparse
-
-
-# @torch.no_grad
-def true_decompress_softmax(x_sparse: torch.Tensor):
-    return x_sparse.to_dense().to(torch.float32)
-
-
-# @torch.no_grad
 def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_outlier_ratio: float, sub_outlier_bit: int = 8, sub_outlier_quantize_method: str = 'per-tensor', svd_rank: int = 16):    
     if len(x.shape) == 4:
         batch, num_head, seq_len, sep_dim = x.shape
         x = x.permute(0, 2, 1, 3).reshape(batch, seq_len, num_head * sep_dim)
     if svd_rank > 0:
-        profile_memory('before_svd')
+        # profile_memory('before_svd')
         with torch.no_grad():
             U, S, V = torch.svd_lowrank(x[0].to(torch.float32), q=svd_rank, niter=16)
             L = U
+            L = L.contiguous()
             R = torch.diag(S) @ V.T
-            profile_memory('before L @ R')
-            x = x - L @ R
-            profile_memory('after L @ R')
+            R = R.contiguous()
+            # profile_memory('before L @ R')
+            # x = x - L @ R
+            x = low_rank_addition(L, -R, x)
+            # profile_memory('after L @ R')
             del U, S, V
-        print(L.shape, R.shape)
-        profile_memory('after_svd')
+        # print(L.shape, R.shape)
+        # profile_memory('after_svd')
     else:
         # generate empty L and R such that the shape is consistent with the input
-        profile_memory('before_svd')
+        # profile_memory('before_svd')
         L = torch.zeros((x.shape[-2], 16)).to(x.device).to(x.dtype)
         R = torch.zeros((16, x.shape[-1])).to(x.device).to(x.dtype)
-        profile_memory('after_svd')
+        # profile_memory('after_svd')
 
     
     outlier = torch.kthvalue(x[0].flatten().to(torch.float32), int(x[0].numel() * (1 - outlier_ratio))).values
@@ -309,7 +341,7 @@ def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_ou
 
 # @torch.no_grad
 def get_statistics_softmax(x: torch.Tensor, iteration: int, outlier_ratio: float):
-    outlier = torch.kthvalue(x[0].flatten(), int(x[0].numel() * (1 - outlier_ratio))).values
+    outlier = torch.kthvalue(x[0].float().flatten(), int(x[0].numel() * (1 - outlier_ratio))).values
     # print(f'iter {iteration} | outlier: {outlier}')
     return outlier
 
@@ -324,4 +356,4 @@ def pad_cut_L(src_L, tgt_L):
         src_L = torch.cat((src_L, torch.zeros(seq_len_2 - seq_len_1, r).to(src_L.dtype).to(src_L.device)), dim=0)
     elif seq_len_1 > seq_len_2:
         src_L = src_L[0:seq_len_2, :]
-    return src_L
+    return src_L.contiguous()

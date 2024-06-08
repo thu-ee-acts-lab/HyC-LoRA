@@ -241,7 +241,7 @@ class DataArguments:
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
-    optim: str = field(default="sgd")
+    optim: str = field(default="adamw_torch")
     model_max_length: int = field(
         default=256,
         metadata={
@@ -262,7 +262,7 @@ class GACTTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
         loss = super().compute_loss(model, inputs, return_outputs)
         #! only for debug
-        print(torch.cuda.memory_summary(), flush=True)
+        # print(torch.cuda.memory_summary(), flush=True)
         # allocated = torch.cuda.memory_allocated()
         # reserved = torch.cuda.memory_reserved()
         # print("allocated: %.2f MB" % (allocated / 1024 / 1024), flush=True)
@@ -711,7 +711,7 @@ def train():
             token=model_args.token,
         )
 
-    # # replace the module
+    # # # replace the module
     if model_args.transform_bp_enable:
         replace_module_for_quantization(model, compress_config, model_args)
     print(model)

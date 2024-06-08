@@ -27,13 +27,14 @@ class EfficientMemorySoftmaxFunc(torch.autograd.Function):
         y_sparse = true_compress_softmax(y, outlier)
         
         ctx.mark_non_differentiable(outlier)
-        ctx.save_for_backward(y_sparse)
+        ctx.y_sparse = y_sparse
         
         return y_return, outlier
 
     @staticmethod
     def backward(ctx, grad_output, grad_outlier):
-        (y_sparse,)  = ctx.saved_tensors
+        grad_output = grad_output.to(torch.bfloat16)
+        y_sparse  = ctx.y_sparse
         y = true_decompress_softmax(y_sparse)
 
         return (

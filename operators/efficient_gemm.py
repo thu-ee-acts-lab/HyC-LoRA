@@ -53,13 +53,16 @@ class EfficientMemoryGEMMFunc(torch.autograd.Function):
         ctx.sub_outlier_bit_1 = sub_outlier_bit_1
         ctx.sub_outlier_bit_2 = sub_outlier_bit_2
         ctx.num_heads = num_heads
+        ctx.x_outlier_compressed = x1_outlier_compressed, x2_outlier_compressed
         ctx.mark_non_differentiable(outlier_1, outlier_2, L_1, R_1, scale_1, L_2, R_2, scale_2)
-        ctx.save_for_backward(x1_outlier_compressed, x1_sub_outlier_compressed, scale1, L_1, R_1, x2_outlier_compressed, x2_sub_outlier_compressed, scale2, L_2, R_2)
+        ctx.save_for_backward(x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2)
 
         return result, outlier_1, L_1, R_1, scale_1, outlier_2, L_2, R_2, scale_2
             
     def backward(ctx, grad_output, grad_outlier_1, grad_L1, grad_R1, grad_scale_1, grad_outlier_2, grad_L2, grad_R2, grad_scale_2):
-        x1_outlier_compressed, x1_sub_outlier_compressed, scale1, L_1, R_1, x2_outlier_compressed, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
+        grad_output = grad_output.to(torch.bfloat16)
+        x1_outlier_compressed, x2_outlier_compressed = ctx.x_outlier_compressed
+        x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None
         
         x1 = true_divide_outlier_suboutlinear_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, True, ctx.num_heads, L=L_1, R=R_1)
@@ -219,15 +222,20 @@ class EfficientMemoryGEMMWithSoftmaxFunc(torch.autograd.Function):
         x1_sparse = true_compress_softmax(x1, outlier_1)
         x2_outlier_compressed, x2_sub_outlier_compressed, scale_2 = true_divide_outlier_suboutlinear_svd_compress(x2, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
         
+        ctx.x_sparse = x1_sparse
+        ctx.x_outlier_compressed = x2_outlier_compressed
         ctx.mark_non_differentiable(outlier_1, outlier_2, L_2, R_2, scale_2)
-        ctx.save_for_backward(x1_sparse, x2_outlier_compressed, x2_sub_outlier_compressed, scale_2, L_2, R_2)
+        ctx.save_for_backward(x2_sub_outlier_compressed, scale_2, L_2, R_2)
         ctx.sub_outlier_bit_2 = sub_outlier_bit_2
         ctx.num_heads = num_heads
         
         return result, outlier_1, outlier_2, L_2, R_2, scale_2
             
     def backward(ctx, grad_output, grad_outlier_1, grad_outlier_2, grad_L_2, grad_R_2, grad_scale_2):
-        x1_sparse, x2_outlier_compressed, x2_sub_outlier_compressed, scale_2, L_2, R_2 = ctx.saved_tensors
+        grad_output = grad_output.to(torch.bfloat16)
+        x1_sparse = ctx.x_sparse
+        x2_outlier_compressed = ctx.x_outlier_compressed
+        x2_sub_outlier_compressed, scale_2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None
         
         x1 = true_decompress_softmax(x1_sparse)

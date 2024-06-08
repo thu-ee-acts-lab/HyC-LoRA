@@ -1,8 +1,8 @@
 # finetune
 set -x
-svd_rank=1
-outlier_ratio=0.001
-softmax_outlier_ratio=0.001
+svd_rank=4
+outlier_ratio=0.002
+softmax_outlier_ratio=0.01
 sub_outlier_ratio=1
 sub_outlier_bit=2
 sub_outlier_quant_method=per-channel
@@ -11,7 +11,7 @@ gradient_accumulation_steps=16
 
 echo $tag
 
-for outlier_ratio in 0.001
+for outlier_ratio in 0.002
 do
     tag=gemma-2b-nf4-${svd_rank}-outlier_ratio-${outlier_ratio}-sub_outlier_ratio-${sub_outlier_ratio}-softmax_outlier_ratio-${softmax_outlier_ratio}-sub_outlier_bit-${sub_outlier_bit}-sub_outlier_quant_method-${sub_outlier_quant_method}-lr-${lr}-gradient_accumulation_steps-${gradient_accumulation_steps}
     exp_name=gsm8k_${tag}
@@ -19,7 +19,8 @@ do
     model_name=${model_name_small}
 
     python -u main.py \
-        --model_name_or_path /mnt/usb/${model_name} \
+        --model_name_or_path /home/yujin-wa20/${model_name} \
+        --data_name gsm8k \
         --lora_init \
         --rank 8 \
         --bits 4 \
