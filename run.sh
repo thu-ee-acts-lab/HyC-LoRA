@@ -3,8 +3,8 @@ set -x
 svd_rank=1
 outlier_ratio=0.001
 softmax_outlier_ratio=0.001
-sub_outlier_ratio=2
-sub_outlier_bit=1
+sub_outlier_ratio=1
+sub_outlier_bit=2
 sub_outlier_quant_method=per-channel
 lr=3e-4
 gradient_accumulation_steps=16
@@ -19,7 +19,7 @@ do
     model_name=${model_name_small}
 
     python -u main.py \
-        --model_name_or_path /home/yujin-wa20/${model_name} \
+        --model_name_or_path /mnt/usb/${model_name} \
         --lora_init \
         --rank 8 \
         --bits 4 \
@@ -37,7 +37,6 @@ do
         --lr_scheduler_type "cosine" \
         --logging_steps 1 \
         --do_train \
-        --report_to wandb \
         --transform_bp_enable \
         --linear_outlier_ratio $outlier_ratio \
         --linear_sub_outlier_ratio $sub_outlier_ratio \
@@ -69,10 +68,10 @@ do
         --softmax_sub_outlier_bit $sub_outlier_bit \
         --softmax_rank $svd_rank
 
-    python test_gsm8k.py \
-        --model_name_or_path /home/yujin-wa20/projects/LoftQ/model_zoo/${model_name} \
-        --adapter_name_or_path /home/yujin-wa20/projects/LoftQ/exp_results/${exp_name}/${exp_name}/${model_name_small}/ep_6/lr_0.0003/seed_11 \
-        --batch_size 16
+    # python test_gsm8k.py \
+       # --model_name_or_path /home/yujin-wa20/projects/LoftQ/model_zoo/${model_name} \
+       # --adapter_name_or_path /home/yujin-wa20/projects/LoftQ/exp_results/${exp_name}/${exp_name}/${model_name_small}/ep_6/lr_0.0003/seed_11 \
+       # --batch_size 16
 
     echo $tag
 done

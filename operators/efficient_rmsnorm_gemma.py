@@ -285,7 +285,7 @@ class EfficientMemoryRMSNormGemma(torch.nn.LayerNorm):
         rank: int = 16,
     ):
         super(EfficientMemoryRMSNormGemma, self).__init__(
-            normalized_shape, eps, elementwise_affine, bias
+            normalized_shape, eps, elementwise_affine, 
         )
         self.outlier_ratio = outlier_ratio
         self.sub_outlier_ratio = sub_outlier_ratio

@@ -105,7 +105,7 @@ def fake_divide_outlier_suboutlinear_svd(x: torch.Tensor, outlier: float, max_no
     return x
 
 
-@torch.no_grad
+#@torch.no_grad
 def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: float, scale: float, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1., L: torch.Tensor = None, R: torch.Tensor = None):
     is_head = len(x.shape) == 4
     if is_head:
@@ -171,7 +171,7 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     return x_outlier_compressed, x_sub_outlier_compressed, scale
 
 
-@torch.no_grad
+# @torch.no_grad
 def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, sub_outlier_bit, scale, is_head = False, num_heads = 1, L = None, R = None):
     x_outlier = x_outlier_compressed.to_dense()
     
@@ -245,7 +245,7 @@ def profile_memory(name):
     print("reserved:  %.2f MB" % (reserved / 1024 / 1024), flush=True)
     print('--------------------------------------------------')
 
-@torch.no_grad
+# @torch.no_grad
 def true_compress_softmax(x: torch.Tensor, outlier: float):
     mask = (x > outlier)
     x_outlier = x * mask
@@ -253,12 +253,12 @@ def true_compress_softmax(x: torch.Tensor, outlier: float):
     return x_outlier_sparse
 
 
-@torch.no_grad
+# @torch.no_grad
 def true_decompress_softmax(x_sparse: torch.Tensor):
     return x_sparse.to_dense().to(torch.float32)
 
 
-@torch.no_grad
+# @torch.no_grad
 def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_outlier_ratio: float, sub_outlier_bit: int = 8, sub_outlier_quantize_method: str = 'per-tensor', svd_rank: int = 16):    
     if len(x.shape) == 4:
         batch, num_head, seq_len, sep_dim = x.shape
@@ -307,14 +307,14 @@ def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_ou
     return outlier, L.to(torch.bfloat16), R.to(torch.bfloat16), scale.to(torch.bfloat16)
 
 
-@torch.no_grad
+# @torch.no_grad
 def get_statistics_softmax(x: torch.Tensor, iteration: int, outlier_ratio: float):
     outlier = torch.kthvalue(x[0].flatten(), int(x[0].numel() * (1 - outlier_ratio))).values
     # print(f'iter {iteration} | outlier: {outlier}')
     return outlier
 
 
-@torch.no_grad
+# @torch.no_grad
 def pad_cut_L(src_L, tgt_L):
     # src_L: [seq_len_1, r]
     # tgt_L: [seq_len_2, r]

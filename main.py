@@ -235,7 +235,7 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    data_name: str = field(default="gsm8k", metadata={"help": "Dataset name."})
+    data_name: str = field(default="/mnt/usb/gsm8k", metadata={"help": "Dataset name."})
 
 
 @dataclass
