@@ -19,7 +19,7 @@ class EfficientMemorySoftmaxFunc(torch.autograd.Function):
         y_return = F.softmax(x, dim=-1)
         y = y_return.clone()
         
-        if iteration < 5:
+        if iteration < 2:
             outlier = get_statistics_softmax(y, iteration, outlier_ratio)
         else:
             outlier = static_value
@@ -63,7 +63,7 @@ class EfficientMemorySoftmax(torch.nn.Module):
             self.static_value,
         )
         
-        if self.iteration < 5:
+        if self.iteration < 2:
             self.static_value = (
                 outlier
                 if self.static_value is None

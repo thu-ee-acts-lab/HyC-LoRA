@@ -29,7 +29,7 @@ class EfficientMemoryHadamardFunc(torch.autograd.Function):
         
         # we just need to use the first batch to calculate the outlier
         # for the value 1
-        if iteration < 5:
+        if iteration < 2:
             outlier_1, L_1, R_1, scale_1 = get_statistics(x1, iteration, outlier_ratio_1, sub_outlier_ratio_1, sub_outlier_bit_1, sub_outlier_quantize_method_1, rank)
             outlier_2, L_2, R_2, scale_2 = get_statistics(x2, iteration, outlier_ratio_2, sub_outlier_ratio_2, sub_outlier_bit_2, sub_outlier_quantize_method_2, rank)
         else:
@@ -127,7 +127,7 @@ class EfficientMemoryHadamard(torch.nn.Module):
             self.static_value_1,
             self.static_value_2,
         )
-        if self.iteration < 5:
+        if self.iteration < 2:
             self.static_value_1[0] = (
                 outlier_1
                 if self.static_value_1[0] is None

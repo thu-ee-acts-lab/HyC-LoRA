@@ -373,7 +373,7 @@ class EfficientMemoryLayerNorm(torch.nn.LayerNorm):
             self.static_value,
         )
 
-        if self.iteration < 5:
+        if self.iteration < 2:
             self.static_value[0] = (
                 outlier
                 if self.static_value[0] is None

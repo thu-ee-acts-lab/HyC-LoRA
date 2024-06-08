@@ -24,7 +24,7 @@ class EfficientMemoryGELUFunc(torch.autograd.Function):
         result = F.gelu(x)
         
         # we just need to use the first batch to calculate the outlier
-        if iteration < 5:
+        if iteration < 2:
             outlier, L, R, scale = get_statistics(x, iteration, outlier_ratio, sub_outlier_ratio, sub_outlier_bit, sub_outlier_quantize_method, rank)
         else:
             outlier = static_value[0]
@@ -95,7 +95,7 @@ class EfficientMemoryGELU(torch.nn.Module):
             self.static_value,
         )
 
-        if self.iteration < 5:
+        if self.iteration < 2:
             self.static_value[0] = (
                 outlier
                 if self.static_value[0] is None
