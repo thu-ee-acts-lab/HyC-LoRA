@@ -1,35 +1,34 @@
 # finetune
 set -x
-svd_rank=4
+svd_rank=2
 outlier_ratio=0.002
-softmax_outlier_ratio=0.01
+softmax_outlier_ratio=0.02
 sub_outlier_ratio=1
-sub_outlier_bit=2
+sub_outlier_bit=8
 sub_outlier_quant_method=per-channel
 lr=3e-4
-gradient_accumulation_steps=16
+gradient_accumulation_steps=4
 
 echo $tag
 
-for outlier_ratio in 0.002
+for outlier_ratio in 0.001
 do
-    tag=gemma-2b-nf4-${svd_rank}-outlier_ratio-${outlier_ratio}-sub_outlier_ratio-${sub_outlier_ratio}-softmax_outlier_ratio-${softmax_outlier_ratio}-sub_outlier_bit-${sub_outlier_bit}-sub_outlier_quant_method-${sub_outlier_quant_method}-lr-${lr}-gradient_accumulation_steps-${gradient_accumulation_steps}
+    tag=Mistral-7B-v0.1-4bit-16rank-svd-rank-${svd_rank}-outlier_ratio-${outlier_ratio}-sub_outlier_ratio-${sub_outlier_ratio}-softmax_outlier_ratio-${softmax_outlier_ratio}-sub_outlier_bit-${sub_outlier_bit}-sub_outlier_quant_method-${sub_outlier_quant_method}-lr-${lr}-gradient_accumulation_steps-${gradient_accumulation_steps}
     exp_name=gsm8k_${tag}
-    model_name_small=gemma-2b-nf4
-    model_name=${model_name_small}
+    model_name_kind=model_zoo/loftq
+    model_name_small=Mistral-7B-v0.1-4bit-16rank
+    model_name=${model_name_kind}/${model_name_small}
 
     python -u main.py \
-        --model_name_or_path /home/yujin-wa20/${model_name} \
+        --model_name_or_path /home/yujin-wa20/projects/LoftQ/${model_name} \
         --data_name gsm8k \
-        --lora_init \
-        --rank 8 \
         --bits 4 \
         --learning_rate $lr \
         --seed 11 \
         --expt_name $exp_name \
         --output_dir exp_results/$exp_name/ \
         --num_train_epochs 6 \
-        --per_device_train_batch_size 1 \
+        --per_device_train_batch_size 4 \
         --gradient_accumulation_steps $gradient_accumulation_steps \
         --evaluation_strategy "no" \
         --save_strategy "epoch" \

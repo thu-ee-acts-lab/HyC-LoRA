@@ -2,3 +2,6 @@
 wandb/
 
 __pycache__/
+
+log/
+results/
