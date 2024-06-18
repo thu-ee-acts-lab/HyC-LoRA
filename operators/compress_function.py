@@ -69,6 +69,7 @@ def svd_lowrank_head_decompress(U: torch.tensor, S: torch.tensor, V: torch.tenso
 
 
 def convert_coo_to_tuple(x_coo):
+    return x_coo
     # extract all the elements
     x_coo_indices = x_coo.indices().to(torch.int16)
     x_coo_values = x_coo.values()
@@ -80,6 +81,7 @@ def convert_coo_to_tuple(x_coo):
 
 
 def convert_tuple_to_coo(x_coo_tuple):
+    return x_coo_tuple
     x_coo_indices = x_coo_tuple[0].to(torch.int64)
     x_coo_values = x_coo_tuple[1]
     x_coo_size = x_coo_tuple[2]
@@ -131,7 +133,7 @@ def fake_divide_outlier_suboutlinear_svd(x: torch.Tensor, outlier: float, max_no
     return x
 
 
-#@torch.no_grad
+@torch.no_grad
 def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: float, scale: float, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1., L: torch.Tensor = None, R: torch.Tensor = None):
     is_head = len(x.shape) == 4
     if is_head:
@@ -140,8 +142,8 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     
     # step 1: substract the svd base
     tgt_L = torch.zeros((x.shape[-2], L.shape[-1]))
-    # x = x - (pad_cut_L(L, tgt_L) @ R)
-    x = low_rank_addition(pad_cut_L(L, tgt_L), -R, x)
+    x = x - (pad_cut_L(L, tgt_L) @ R)
+    # x = low_rank_addition(pad_cut_L(L, tgt_L), -R, x)
     
     # step 2: prune the outlier
     mask_1 = (x.abs() > outlier)
@@ -149,8 +151,7 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     x = x - x_outlier
     # compress the x_outlier
     if torch.sum(scale) != 1.:
-        x_outlier_compressed = x_outlier.to(torch.bfloat16).to_sparse() # coo
-        x_outlier_compressed = convert_coo_to_tuple(x_outlier_compressed)
+        x_outlier_compressed = convert_coo_to_tuple(x_outlier.to(torch.bfloat16).to_sparse()) # coo
     else:
         x_outlier_compressed = x_outlier
     del x_outlier
@@ -199,13 +200,14 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
     return x_outlier_compressed, x_sub_outlier_compressed, scale
 
 
-# @torch.no_grad
+@torch.no_grad
 def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, sub_outlier_bit, scale, is_head = False, num_heads = 1, L = None, R = None):
     x_outlier = convert_tuple_to_coo(x_outlier_compressed).to_dense()
     
     # step 1: add the base
     tgt_L = torch.zeros((x_outlier.shape[-2], L.shape[-1]))
     x = (pad_cut_L(L, tgt_L) @ R).to(torch.bfloat16)
+    del tgt_L
     
     # step 2: add the outliers
     x = x + x_outlier
@@ -259,16 +261,16 @@ def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_
     return x
 
 
-# @torch.no_grad
+@torch.no_grad
 def true_compress_softmax(x: torch.Tensor, outlier: float):
     mask = (x > outlier)
     x_outlier = x * mask
-    x_outlier_sparse = x_outlier.to(torch.bfloat16).to_sparse()
+    x_outlier_sparse = x_outlier.to_sparse()
     x_outlier_sparse = convert_coo_to_tuple(x_outlier_sparse)
     return x_outlier_sparse
 
 
-# @torch.no_grad
+@torch.no_grad
 def true_decompress_softmax(x_sparse: torch.Tensor):
     return convert_tuple_to_coo(x_sparse).to_dense()
 
@@ -287,7 +289,7 @@ def profile_memory(name):
     print("reserved:  %.2f MB" % (reserved / 1024 / 1024), flush=True)
     print('--------------------------------------------------')
 
-# @torch.no_grad
+@torch.no_grad
 def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_outlier_ratio: float, sub_outlier_bit: int = 8, sub_outlier_quantize_method: str = 'per-tensor', svd_rank: int = 16):    
     if len(x.shape) == 4:
         batch, num_head, seq_len, sep_dim = x.shape
@@ -301,8 +303,8 @@ def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_ou
             R = torch.diag(S) @ V.T
             R = R.contiguous()
             # profile_memory('before L @ R')
-            # x = x - L @ R
-            x = low_rank_addition(L, -R, x)
+            x = x - L @ R
+            # x = low_rank_addition(L, -R, x)
             # profile_memory('after L @ R')
             del U, S, V
         # print(L.shape, R.shape)
@@ -314,7 +316,6 @@ def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_ou
         R = torch.zeros((16, x.shape[-1])).to(x.device).to(x.dtype)
         # profile_memory('after_svd')
 
-    
     outlier = torch.kthvalue(x[0].flatten().to(torch.float32), int(x[0].numel() * (1 - outlier_ratio))).values
     x_outlier = x[0] * (x[0].abs() > outlier)
     x_outlier = x_outlier.to(torch.bfloat16)
@@ -339,14 +340,14 @@ def get_statistics(x: torch.Tensor, iteration: int, outlier_ratio: float, sub_ou
     return outlier, L.to(torch.bfloat16), R.to(torch.bfloat16), scale.to(torch.bfloat16)
 
 
-# @torch.no_grad
+@torch.no_grad
 def get_statistics_softmax(x: torch.Tensor, iteration: int, outlier_ratio: float):
     outlier = torch.kthvalue(x[0].float().flatten(), int(x[0].numel() * (1 - outlier_ratio))).values
     # print(f'iter {iteration} | outlier: {outlier}')
     return outlier
 
 
-# @torch.no_grad
+@torch.no_grad
 def pad_cut_L(src_L, tgt_L):
     # src_L: [seq_len_1, r]
     # tgt_L: [seq_len_2, r]

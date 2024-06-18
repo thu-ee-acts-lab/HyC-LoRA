@@ -33,7 +33,7 @@ class EfficientMemorySoftmaxFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output, grad_outlier):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         y_sparse  = ctx.y_sparse
         y = true_decompress_softmax(y_sparse)
 

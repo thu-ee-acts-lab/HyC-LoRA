@@ -60,7 +60,7 @@ class EfficientMemoryGEMMFunc(torch.autograd.Function):
         return result, outlier_1, L_1, R_1, scale_1, outlier_2, L_2, R_2, scale_2
             
     def backward(ctx, grad_output, grad_outlier_1, grad_L1, grad_R1, grad_scale_1, grad_outlier_2, grad_L2, grad_R2, grad_scale_2):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         x1_outlier_compressed, x2_outlier_compressed = ctx.x_outlier_compressed
         x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None
@@ -68,8 +68,8 @@ class EfficientMemoryGEMMFunc(torch.autograd.Function):
         x1 = true_divide_outlier_suboutlinear_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, True, ctx.num_heads, L=L_1, R=R_1)
         x2 = true_divide_outlier_suboutlinear_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale2, True, ctx.num_heads, L=L_2, R=R_2).mT
 
-        grad_input1 = grad_output @ x2.transpose(-2, -1)
-        grad_input2 = x1.transpose(-2, -1) @ grad_output
+        grad_input1 = grad_output @ x2.transpose(-2, -1).to(grad_output.dtype)
+        grad_input2 = x1.transpose(-2, -1).to(grad_output.dtype) @ grad_output
 
         return (
             grad_input1,
@@ -232,7 +232,7 @@ class EfficientMemoryGEMMWithSoftmaxFunc(torch.autograd.Function):
         return result, outlier_1, outlier_2, L_2, R_2, scale_2
             
     def backward(ctx, grad_output, grad_outlier_1, grad_outlier_2, grad_L_2, grad_R_2, grad_scale_2):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         x1_sparse = ctx.x_sparse
         x2_outlier_compressed = ctx.x_outlier_compressed
         x2_sub_outlier_compressed, scale_2, L_2, R_2 = ctx.saved_tensors
@@ -240,8 +240,8 @@ class EfficientMemoryGEMMWithSoftmaxFunc(torch.autograd.Function):
         
         x1 = true_decompress_softmax(x1_sparse)
         x2 = true_divide_outlier_suboutlinear_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale_2, True, ctx.num_heads, L=L_2, R=R_2)
-        grad_input1 = grad_output @ x2.transpose(-2, -1)
-        grad_input2 = x1.transpose(-2, -1) @ grad_output
+        grad_input1 = grad_output @ x2.transpose(-2, -1).to(grad_output.dtype)
+        grad_input2 = x1.transpose(-2, -1).to(grad_output.dtype) @ grad_output
 
         return (
             grad_input1,

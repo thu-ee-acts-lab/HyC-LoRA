@@ -248,31 +248,33 @@ class EfficientMemoryLayerNormFunc(torch.autograd.Function):
         )
         
         # we just need to use the first batch to calculate the outlier
-        if iteration < 10:
-            outlier, max_norm_column_list, scale = get_statistics(x, iteration, outlier_ratio, sub_outlier_ratio, sub_outlier_bit, sub_outlier_quantize_method)
-            # inorder to mark save_for_backward, we should convert the tensor
-            max_norm_column_list = torch.tensor(max_norm_column_list)
+        if iteration < 2:
+            outlier, L, R, scale = get_statistics(x, iteration, outlier_ratio, sub_outlier_ratio, sub_outlier_bit, sub_outlier_quantize_method, rank)
         else:
             outlier = static_value[0]
-            max_norm_column_list = static_value[1]
-            scale = static_value[2]         
-            
-        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio)
-        
-        ctx.mark_non_differentiable(outlier, max_norm_column_list)
-        ctx.save_for_backward(x_outlier_compressed, x_sub_outlier_compressed, scale, weight, bias, mean, rstd)
+            L = static_value[1]
+            scale = static_value[2]
+            R = static_value[3]
+
+        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
+        del x
+        ctx.mark_non_differentiable(outlier, L, R, scale)
+        ctx.x_outlier_compressed = x_outlier_compressed
+        ctx.save_for_backward(x_sub_outlier_compressed, scale, weight, bias, mean, rstd, L, R)
         ctx.BLOCK_SIZE = BLOCK_SIZE
         ctx.num_warps = num_warps
         ctx.eps = eps
         ctx.sub_outlier_bit = sub_outlier_bit
         
         y = y.contiguous()
-        return y, outlier, max_norm_column_list, scale
+        return y, outlier, L, R, scale
 
     @staticmethod
-    def backward(ctx, dy, grad_outlier, grad_max_norm_column_list, grad_scale):
-        x_outlier_compressed, x_sub_outlier_compressed, scale, w, b, m, v = ctx.saved_tensors
-        x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale)
+    def backward(ctx, dy, grad_outlier, grad_L, grad_R, grad_scale):
+        dy = dy.to(torch.bfloat16)
+        x_outlier_compressed = ctx.x_outlier_compressed
+        x_sub_outlier_compressed, scale, w, b, m, v, L, R = ctx.saved_tensors
+        x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
         dx, dw, db = None, None, None
 
         # heuristics for amount of parallel reduction stream for DW/DB
@@ -330,7 +332,7 @@ class EfficientMemoryLayerNormFunc(torch.autograd.Function):
             BLOCK_SIZE_N=128,
         )
 
-        return dx, None, None, None, None, None, None, None, None, None, None, None, None
+        return dx, None, None, None, None, None, None, dw, None, None, None, None
 
 
 class EfficientMemoryLayerNorm(torch.nn.LayerNorm):
@@ -358,7 +360,7 @@ class EfficientMemoryLayerNorm(torch.nn.LayerNorm):
         self.static_value = [None, None, None, None]
 
     def forward(self, x):
-        result, outlier, max_norm_column_list, scale = EfficientMemoryLayerNormFunc.apply(
+        result, outlier, L, R, scale = EfficientMemoryLayerNormFunc.apply(
             x,
             self.normalized_shape,
             self.outlier_ratio,
@@ -381,14 +383,21 @@ class EfficientMemoryLayerNorm(torch.nn.LayerNorm):
                 / (self.iteration + 1)
             )
             self.static_value[1] = (
-                max_norm_column_list
+                L
                 if self.static_value[1] is None
-                else self.static_value[1]
+                else (self.iteration * self.static_value[1] + pad_cut_L(L, self.static_value[1])) 
+                / (self.iteration + 1)
             )
             self.static_value[2] = (
                 scale
                 if self.static_value[2] is None
                 else (self.iteration * self.static_value[2] + scale) 
+                / (self.iteration + 1)
+            )
+            self.static_value[3] = (
+                R
+                if self.static_value[3] is None
+                else (self.iteration * self.static_value[3] + R) 
                 / (self.iteration + 1)
             )
         self.iteration += 1

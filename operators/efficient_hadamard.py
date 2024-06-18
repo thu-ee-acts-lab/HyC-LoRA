@@ -54,7 +54,7 @@ class EfficientMemoryHadamardFunc(torch.autograd.Function):
         return result, outlier_1, L_1, R_1, scale_1, outlier_2, L_2, R_2, scale_2
             
     def backward(ctx, grad_output, grad_outlier_1, grad_L1, grad_R1, grad_scale_1, grad_outlier_2, grad_L2, grad_R2, grad_scale_2):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         x1_outlier_compressed, x2_outlier_compressed = ctx.x_outlier_compressed
         x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None

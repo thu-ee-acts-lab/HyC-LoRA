@@ -58,6 +58,7 @@ class EfficientMemoryDropoutFunc(torch.autograd.Function):
         ctx.p = p
         ctx.seed = seed
         output = torch.empty_like(x)
+        x = x.contiguous()
         assert x.is_contiguous()
         n_elements = x.numel()
         grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)

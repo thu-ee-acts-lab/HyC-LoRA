@@ -33,9 +33,8 @@ class EfficientMemorySiLUFunc(torch.autograd.Function):
             R = static_value[3]
             
         x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
-        
-        ctx.mark_non_differentiable(outlier, L, R, scale)
         ctx.x_outlier_compressed = x_outlier_compressed
+        ctx.mark_non_differentiable(outlier, L, R, scale)
         ctx.save_for_backward(x_sub_outlier_compressed, scale, L, R)
         ctx.sub_outlier_bit = sub_outlier_bit
         
@@ -43,7 +42,7 @@ class EfficientMemorySiLUFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output, grad_outlier, grad_L, grad_R, grad_scale):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         x_outlier_compressed = ctx.x_outlier_compressed
         x_sub_outlier_compressed, scale, L, R = ctx.saved_tensors
         x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)

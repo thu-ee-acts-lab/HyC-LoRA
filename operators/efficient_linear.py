@@ -54,7 +54,7 @@ class EfficientMemoryLinearFunc(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output, grad_outlier, grad_L, grad_R, grad_scale):
-        grad_output = grad_output.to(torch.bfloat16)
+        
         use_bias = ctx.use_bias
         x_outlier_compressed = ctx.x_outlier_compressed
         x_sub_outlier_compressed, scale, w, L, R = ctx.saved_tensors

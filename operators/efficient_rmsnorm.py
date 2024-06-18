@@ -201,15 +201,12 @@ class EfficientMemoryRMSNormFunc(torch.autograd.Function):
         x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
         del x
         ctx.mark_non_differentiable(outlier, L, R, scale)
-        ctx.save_for_backward(x_outlier_compressed, x_sub_outlier_compressed, scale, weight, mean, rstd, L, R)
+        ctx.x_outlier_compressed = x_outlier_compressed
+        ctx.save_for_backward(x_sub_outlier_compressed, scale, weight, mean, rstd, L, R)
         ctx.BLOCK_SIZE = BLOCK_SIZE
         ctx.num_warps = num_warps
         ctx.eps = eps
         ctx.sub_outlier_bit = sub_outlier_bit
-        # get the total size of x_outlier_compressed, x_sub_outlier_compressed, L, R
-        print(f'x_sub_outlier_compressed: {x_sub_outlier_compressed.numel() * x_sub_outlier_compressed.element_size() / 1024 / 1024}')
-        print(f'L: {L.numel() * L.element_size() / 1024 / 1024}')
-        print(f'R: {R.numel() * R.element_size() / 1024 / 1024}')
         
         y = y.contiguous()
         return y, outlier, L, R, scale
@@ -217,7 +214,8 @@ class EfficientMemoryRMSNormFunc(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dy, grad_outlier, grad_L, grad_R, grad_scale):
         dy = dy.to(torch.bfloat16)
-        x_outlier_compressed, x_sub_outlier_compressed, scale, w, m, v, L, R = ctx.saved_tensors
+        x_outlier_compressed = ctx.x_outlier_compressed
+        x_sub_outlier_compressed, scale, w, m, v, L, R = ctx.saved_tensors
         x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
         dx, dw = None, None
 
