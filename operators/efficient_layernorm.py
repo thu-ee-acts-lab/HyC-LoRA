@@ -3,8 +3,8 @@ import torch
 import triton
 import triton.language as tl
 from .compress_function import (
-    true_divide_outlier_suboutlinear_svd_compress,
-    true_divide_outlier_suboutlinear_svd_decompress,
+    true_divide_outlier_suboutlier_svd_compress,
+    true_divide_outlier_suboutlier_svd_decompress,
     get_statistics,
     pad_cut_L
 )
@@ -256,7 +256,7 @@ class EfficientMemoryLayerNormFunc(torch.autograd.Function):
             scale = static_value[2]
             R = static_value[3]
 
-        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
+        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlier_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
         del x
         ctx.mark_non_differentiable(outlier, L, R, scale)
         ctx.x_outlier_compressed = x_outlier_compressed
@@ -274,7 +274,7 @@ class EfficientMemoryLayerNormFunc(torch.autograd.Function):
         dy = dy.to(torch.bfloat16)
         x_outlier_compressed = ctx.x_outlier_compressed
         x_sub_outlier_compressed, scale, w, b, m, v, L, R = ctx.saved_tensors
-        x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
+        x = true_divide_outlier_suboutlier_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
         dx, dw, db = None, None, None
 
         # heuristics for amount of parallel reduction stream for DW/DB

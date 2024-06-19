@@ -95,7 +95,7 @@ def convert_tuple_to_coo(x_coo_tuple):
     return x_coo
 
 
-def fake_divide_outlier_suboutlinear_svd(x: torch.Tensor, outlier: float, max_norm_column_list: float, scale: float, rank: int, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1.):
+def fake_divide_outlier_suboutlier_svd(x: torch.Tensor, outlier: float, max_norm_column_list: float, scale: float, rank: int, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1.):
     is_head = len(x.shape) == 4
     if is_head:
         num_heads = x.shape[1]
@@ -134,7 +134,7 @@ def fake_divide_outlier_suboutlinear_svd(x: torch.Tensor, outlier: float, max_no
 
 
 @torch.no_grad
-def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: float, scale: float, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1., L: torch.Tensor = None, R: torch.Tensor = None):
+def true_divide_outlier_suboutlier_svd_compress(x: torch.Tensor, outlier: float, scale: float, sub_outlier_bit: int = 8, sub_outlier_ratio: float = 1., L: torch.Tensor = None, R: torch.Tensor = None):
     is_head = len(x.shape) == 4
     if is_head:
         num_heads = x.shape[1]
@@ -201,7 +201,7 @@ def true_divide_outlier_suboutlinear_svd_compress(x: torch.Tensor, outlier: floa
 
 
 @torch.no_grad
-def true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, sub_outlier_bit, scale, is_head = False, num_heads = 1, L = None, R = None):
+def true_divide_outlier_suboutlier_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, sub_outlier_bit, scale, is_head = False, num_heads = 1, L = None, R = None):
     x_outlier = convert_tuple_to_coo(x_outlier_compressed).to_dense()
     
     # step 1: add the base

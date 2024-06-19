@@ -1,7 +1,7 @@
 import torch
 from .compress_function import (
-    true_divide_outlier_suboutlinear_svd_compress,
-    true_divide_outlier_suboutlinear_svd_decompress,
+    true_divide_outlier_suboutlier_svd_compress,
+    true_divide_outlier_suboutlier_svd_decompress,
     true_compress_softmax,
     true_decompress_softmax,
     prune_softmax,
@@ -47,8 +47,8 @@ class EfficientMemoryGEMMFunc(torch.autograd.Function):
             scale_2 = static_value_2[2]
             R_2 = static_value_2[3]
         
-        x1_outlier_compressed, x1_sub_outlier_compressed, scale1 = true_divide_outlier_suboutlinear_svd_compress(x1, outlier_1, scale_1, sub_outlier_bit_1, sub_outlier_ratio_1, L_1, R_1)
-        x2_outlier_compressed, x2_sub_outlier_compressed, scale2 = true_divide_outlier_suboutlinear_svd_compress(x2.mT, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
+        x1_outlier_compressed, x1_sub_outlier_compressed, scale1 = true_divide_outlier_suboutlier_svd_compress(x1, outlier_1, scale_1, sub_outlier_bit_1, sub_outlier_ratio_1, L_1, R_1)
+        x2_outlier_compressed, x2_sub_outlier_compressed, scale2 = true_divide_outlier_suboutlier_svd_compress(x2.mT, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
         
         ctx.sub_outlier_bit_1 = sub_outlier_bit_1
         ctx.sub_outlier_bit_2 = sub_outlier_bit_2
@@ -65,8 +65,8 @@ class EfficientMemoryGEMMFunc(torch.autograd.Function):
         x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None
         
-        x1 = true_divide_outlier_suboutlinear_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, True, ctx.num_heads, L=L_1, R=R_1)
-        x2 = true_divide_outlier_suboutlinear_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale2, True, ctx.num_heads, L=L_2, R=R_2).mT
+        x1 = true_divide_outlier_suboutlier_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, True, ctx.num_heads, L=L_1, R=R_1)
+        x2 = true_divide_outlier_suboutlier_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale2, True, ctx.num_heads, L=L_2, R=R_2).mT
 
         grad_input1 = grad_output @ x2.transpose(-2, -1).to(grad_output.dtype)
         grad_input2 = x1.transpose(-2, -1).to(grad_output.dtype) @ grad_output
@@ -220,7 +220,7 @@ class EfficientMemoryGEMMWithSoftmaxFunc(torch.autograd.Function):
             R_2 = static_value_2[3]
         
         x1_sparse = true_compress_softmax(x1, outlier_1)
-        x2_outlier_compressed, x2_sub_outlier_compressed, scale_2 = true_divide_outlier_suboutlinear_svd_compress(x2, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
+        x2_outlier_compressed, x2_sub_outlier_compressed, scale_2 = true_divide_outlier_suboutlier_svd_compress(x2, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
         
         ctx.x_sparse = x1_sparse
         ctx.x_outlier_compressed = x2_outlier_compressed
@@ -239,7 +239,7 @@ class EfficientMemoryGEMMWithSoftmaxFunc(torch.autograd.Function):
         grad_input1, grad_input2 = None, None
         
         x1 = true_decompress_softmax(x1_sparse)
-        x2 = true_divide_outlier_suboutlinear_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale_2, True, ctx.num_heads, L=L_2, R=R_2)
+        x2 = true_divide_outlier_suboutlier_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale_2, True, ctx.num_heads, L=L_2, R=R_2)
         grad_input1 = grad_output @ x2.transpose(-2, -1).to(grad_output.dtype)
         grad_input2 = x1.transpose(-2, -1).to(grad_output.dtype) @ grad_output
 

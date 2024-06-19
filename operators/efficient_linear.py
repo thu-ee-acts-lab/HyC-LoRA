@@ -1,8 +1,8 @@
 import torch
 import bitsandbytes.functional as F
 from .compress_function import (
-    true_divide_outlier_suboutlinear_svd_compress,
-    true_divide_outlier_suboutlinear_svd_decompress,
+    true_divide_outlier_suboutlier_svd_compress,
+    true_divide_outlier_suboutlier_svd_decompress,
     get_statistics,
     pad_cut_L
 )
@@ -43,7 +43,7 @@ class EfficientMemoryLinearFunc(torch.autograd.Function):
             scale = static_value[2]
             R = static_value[3]
             
-        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlinear_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
+        x_outlier_compressed, x_sub_outlier_compressed, scale = true_divide_outlier_suboutlier_svd_compress(x, outlier, scale, sub_outlier_bit, sub_outlier_ratio, L, R)
         
         ctx.mark_non_differentiable(outlier, L, R, scale)
         ctx.x_outlier_compressed = x_outlier_compressed
@@ -58,7 +58,7 @@ class EfficientMemoryLinearFunc(torch.autograd.Function):
         use_bias = ctx.use_bias
         x_outlier_compressed = ctx.x_outlier_compressed
         x_sub_outlier_compressed, scale, w, L, R = ctx.saved_tensors
-        x = true_divide_outlier_suboutlinear_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
+        x = true_divide_outlier_suboutlier_svd_decompress(x_outlier_compressed, x_sub_outlier_compressed, ctx.sub_outlier_bit, scale, L=L, R=R)
 
         grad_input = grad_weight = grad_bias = None
         grad_output = grad_output.to(w.dtype)

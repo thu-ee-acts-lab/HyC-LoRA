@@ -1,7 +1,7 @@
 import torch
 from .compress_function import (
-    true_divide_outlier_suboutlinear_svd_compress,
-    true_divide_outlier_suboutlinear_svd_decompress,
+    true_divide_outlier_suboutlier_svd_compress,
+    true_divide_outlier_suboutlier_svd_decompress,
     get_statistics,
     pad_cut_L
 )
@@ -42,8 +42,8 @@ class EfficientMemoryHadamardFunc(torch.autograd.Function):
             scale_2 = static_value_2[2]
             R_2 = static_value_2[3]
         
-        x1_outlier_compressed, x1_sub_outlier_compressed, scale1 = true_divide_outlier_suboutlinear_svd_compress(x1, outlier_1, scale_1, sub_outlier_bit_1, sub_outlier_ratio_1, L_1, R_1)
-        x2_outlier_compressed, x2_sub_outlier_compressed, scale2 = true_divide_outlier_suboutlinear_svd_compress(x2, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
+        x1_outlier_compressed, x1_sub_outlier_compressed, scale1 = true_divide_outlier_suboutlier_svd_compress(x1, outlier_1, scale_1, sub_outlier_bit_1, sub_outlier_ratio_1, L_1, R_1)
+        x2_outlier_compressed, x2_sub_outlier_compressed, scale2 = true_divide_outlier_suboutlier_svd_compress(x2, outlier_2, scale_2, sub_outlier_bit_2, sub_outlier_ratio_2, L_2, R_2)
         
         ctx.sub_outlier_bit_1 = sub_outlier_bit_1
         ctx.sub_outlier_bit_2 = sub_outlier_bit_2
@@ -59,8 +59,8 @@ class EfficientMemoryHadamardFunc(torch.autograd.Function):
         x1_sub_outlier_compressed, scale1, L_1, R_1, x2_sub_outlier_compressed, scale2, L_2, R_2 = ctx.saved_tensors
         grad_input1, grad_input2 = None, None
         
-        x1 = true_divide_outlier_suboutlinear_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, L=L_1, R=R_1)
-        x2 = true_divide_outlier_suboutlinear_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale2, L=L_2, R=R_2)
+        x1 = true_divide_outlier_suboutlier_svd_decompress(x1_outlier_compressed, x1_sub_outlier_compressed, ctx.sub_outlier_bit_1, scale1, L=L_1, R=R_1)
+        x2 = true_divide_outlier_suboutlier_svd_decompress(x2_outlier_compressed, x2_sub_outlier_compressed, ctx.sub_outlier_bit_2, scale2, L=L_2, R=R_2)
 
         grad_input1 = grad_output * x2
         grad_input2 = x1 * grad_output

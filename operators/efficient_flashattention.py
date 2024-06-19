@@ -1,8 +1,8 @@
 import torch
 from flash_attn.flash_attn_interface import _flash_attn_varlen_forward, _flash_attn_varlen_backward
 from .compress_function import (
-    true_divide_outlier_suboutlinear_svd_compress,
-    true_divide_outlier_suboutlinear_svd_decompress,
+    true_divide_outlier_suboutlier_svd_compress,
+    true_divide_outlier_suboutlier_svd_decompress,
     get_statistics,
     pad_cut_L
 )
@@ -74,10 +74,10 @@ class EfficientFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
             v_outlier, v_L, v_scale, v_R = v_static_value
             o_outlier, o_L, o_scale, o_R = o_static_value
         
-        q_outlier_compressed, q_sub_outlier_compressed, q_scale = true_divide_outlier_suboutlinear_svd_compress(q, q_outlier, q_scale, sub_outlier_bit, sub_outlier_ratio, L=q_L, R=q_R)
-        k_outlier_compressed, k_sub_outlier_compressed, k_scale = true_divide_outlier_suboutlinear_svd_compress(k, k_outlier, k_scale, sub_outlier_bit, sub_outlier_ratio, L=k_L, R=k_R)
-        v_outlier_compressed, v_sub_outlier_compressed, v_scale = true_divide_outlier_suboutlinear_svd_compress(v, v_outlier, v_scale, sub_outlier_bit, sub_outlier_ratio, L=v_L, R=v_R)
-        o_outlier_compressed, o_sub_outlier_compressed, o_scale = true_divide_outlier_suboutlinear_svd_compress(out_padded, o_outlier, o_scale, sub_outlier_bit, sub_outlier_ratio, L=o_L, R=o_R)
+        q_outlier_compressed, q_sub_outlier_compressed, q_scale = true_divide_outlier_suboutlier_svd_compress(q, q_outlier, q_scale, sub_outlier_bit, sub_outlier_ratio, L=q_L, R=q_R)
+        k_outlier_compressed, k_sub_outlier_compressed, k_scale = true_divide_outlier_suboutlier_svd_compress(k, k_outlier, k_scale, sub_outlier_bit, sub_outlier_ratio, L=k_L, R=k_R)
+        v_outlier_compressed, v_sub_outlier_compressed, v_scale = true_divide_outlier_suboutlier_svd_compress(v, v_outlier, v_scale, sub_outlier_bit, sub_outlier_ratio, L=v_L, R=v_R)
+        o_outlier_compressed, o_sub_outlier_compressed, o_scale = true_divide_outlier_suboutlier_svd_compress(out_padded, o_outlier, o_scale, sub_outlier_bit, sub_outlier_ratio, L=o_L, R=o_R)
         
         ctx.dropout_p = dropout_p
         ctx.max_seqlen = max_seqlen
@@ -96,10 +96,10 @@ class EfficientFlashAttnVarlenQKVPackedFunc(torch.autograd.Function):
     @staticmethod
     def backward(ctx, dout, *args):
         q_outlier_compressed, q_sub_outlier_compressed, q_scale, k_outlier_compressed, k_sub_outlier_compressed, k_scale, v_outlier_compressed, v_sub_outlier_compressed, v_scale, o_outlier_compressed, o_sub_outlier_compressed, o_scale, q_L, q_R, k_L, k_R, v_L, v_R, o_L, o_R, softmax_lse, cu_seqlens, rng_state = ctx.saved_tensors
-        q = true_divide_outlier_suboutlinear_svd_decompress(q_outlier_compressed, q_sub_outlier_compressed, ctx.sub_outlier_bit, q_scale, True, ctx.num_heads, L=q_L, R=q_R)
-        k = true_divide_outlier_suboutlinear_svd_decompress(k_outlier_compressed, k_sub_outlier_compressed, ctx.sub_outlier_bit, k_scale, True, ctx.num_heads, L=k_L, R=k_R)
-        v = true_divide_outlier_suboutlinear_svd_decompress(v_outlier_compressed, v_sub_outlier_compressed, ctx.sub_outlier_bit, v_scale, True, ctx.num_heads, L=v_L, R=v_R)
-        out = true_divide_outlier_suboutlinear_svd_decompress(o_outlier_compressed, o_sub_outlier_compressed, ctx.sub_outlier_bit, o_scale, True, ctx.num_heads, L=o_L, R=o_R)
+        q = true_divide_outlier_suboutlier_svd_decompress(q_outlier_compressed, q_sub_outlier_compressed, ctx.sub_outlier_bit, q_scale, True, ctx.num_heads, L=q_L, R=q_R)
+        k = true_divide_outlier_suboutlier_svd_decompress(k_outlier_compressed, k_sub_outlier_compressed, ctx.sub_outlier_bit, k_scale, True, ctx.num_heads, L=k_L, R=k_R)
+        v = true_divide_outlier_suboutlier_svd_decompress(v_outlier_compressed, v_sub_outlier_compressed, ctx.sub_outlier_bit, v_scale, True, ctx.num_heads, L=v_L, R=v_R)
+        out = true_divide_outlier_suboutlier_svd_decompress(o_outlier_compressed, o_sub_outlier_compressed, ctx.sub_outlier_bit, o_scale, True, ctx.num_heads, L=o_L, R=o_R)
         
         # [1, 16, 16384, 128] -> [16, 16384, 128] -> [16384, 16, 128]
         q = q.squeeze(0).permute(1, 0, 2)
