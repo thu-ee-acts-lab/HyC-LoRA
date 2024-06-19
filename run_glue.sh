@@ -1,4 +1,4 @@
-task_name=rte
+task_name=cola
 svd_rank=2
 outlier_ratio=0.01
 softmax_outlier_ratio=0.05
@@ -8,15 +8,15 @@ sub_outlier_quant_method=per-channel
 
 for outlier_ratio in 0.005
     do
-    for sub_outlier_bit in 2
+    for sub_outlier_bit in 1 2
     do
         for svd_rank in 0 4
         do
             for softmax_outlier_ratio in 0.05
             do
                 python -u train_glue.py \
-                    --model-name-or-path roberta-large \
-                    --task-name rte \
+                    --model-name-or-path roberta-base \
+                    --task-name $task_name \
                     --max-length 128 \
                     --per-device-train-batch-size 32 \
                     --per-device-eval-batch-size 128 \
