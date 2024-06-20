@@ -19,7 +19,7 @@ do
     model_name_small=Mistral-7B-v0.1-4bit-16rank
     model_name=${model_name_kind}/${model_name_small}
 
-    python -u main.py \
+    python -u train_gsm8k.py \
         --model_name_or_path /home/yujin-wa20/projects/LoftQ/${model_name} \
         --data_name gsm8k \
         --bits 4 \
@@ -28,7 +28,7 @@ do
         --expt_name $exp_name \
         --output_dir exp_results/$exp_name/ \
         --num_train_epochs 6 \
-        --per_device_train_batch_size 4 \
+        --per_device_train_batch_size 8 \
         --gradient_accumulation_steps $gradient_accumulation_steps \
         --evaluation_strategy "no" \
         --save_strategy "epoch" \

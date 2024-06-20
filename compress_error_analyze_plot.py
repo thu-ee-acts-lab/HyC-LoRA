@@ -11,18 +11,18 @@ def get_compress_ratio(b, s, r, w, p, d):
 
 if __name__ == '__main__':
     data_kinds = [
-        # 'input_layernorm.pt', 
-        'self_attn.q_proj.lora_A.default.pt', 
-        # 'self_attn.gemm1_gemm1.pt',
-        # 'self_attn.gemm1_gemm2.pt',
-        # 'self_attn.gemm2_gemm2.pt',
-        'self_attn.o_proj.lora_A.default.pt',
-        # 'post_attention_layernorm.pt',
-        'mlp.up_proj.lora_A.default.pt',
-        # 'mlp.act_fn.pt',
-        # 'mlp.hadamard_hadamard1.pt',
-        # 'mlp.hadamard_hadamard2.pt',
-        'mlp.down_proj.lora_A.default.pt',
+        'input_layernorm.pt', 
+        # 'self_attn.q_proj.lora_A.default.pt', 
+        'self_attn.gemm1_1.pt',
+        'self_attn.gemm1_2.pt',
+        # 'self_attn.gemm2_2.pt',
+        # 'self_attn.o_proj.lora_A.default.pt',
+        'post_attention_layernorm.pt',
+        # 'mlp.up_proj.lora_A.default.pt',
+        'mlp.act_fn.pt',
+        'mlp.hadamard_1.pt',
+        'mlp.hadamard_2.pt',
+        # 'mlp.down_proj.lora_A.default.pt',
     ]
     
     for layer in range(32):

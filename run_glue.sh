@@ -1,4 +1,4 @@
-task_name=cola
+task_name=sst2
 svd_rank=2
 outlier_ratio=0.01
 softmax_outlier_ratio=0.05
@@ -6,11 +6,11 @@ sub_outlier_ratio=1
 sub_outlier_bit=1
 sub_outlier_quant_method=per-channel
 
-for outlier_ratio in 0.005
+for outlier_ratio in 0.0000001
     do
     for sub_outlier_bit in 1 2
     do
-        for svd_rank in 0 4
+        for svd_rank in 0
         do
             for softmax_outlier_ratio in 0.05
             do
