@@ -45,9 +45,30 @@ git clone git@github.com:Ther-nullptr/bitsandbytes.git
 Or replace the original bitsandbytes package with following code:
 
 ```bash
-bitsandbytes_fix
+bitsandbytes_fix/_function.py -> bitsandbytes/bitsandbytes/autograd/_function.py
 ```
 
+### Experiments: RoBERTa
+
+Modify the config in the `run_glue.sh` script to run the experiments:
+
+```bash
+bash run_glue.sh
+```
+
+### Experiments: LLaMA-2-7B/Mistral-7B
+
+(Optional) Use [LoftQ](https://github.com/yxli2123/LoftQ) method to compress the weight:
+
+```bash
+bash generate_loftq.sh
+```
+
+Modify the config in the `run_gsm8k.sh` script to run the experiments:
+
+```bash
+bash run_gsm8k.sh
+```
 
 ## TODO
 

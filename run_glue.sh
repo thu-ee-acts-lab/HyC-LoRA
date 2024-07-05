@@ -5,9 +5,10 @@ softmax_outlier_ratio=0.05
 sub_outlier_ratio=1 # set 1: use quantization; set 0: only low-rank subtraction & outlier extraction, and no quantization
 sub_outlier_bit=1 # 1/2/4/8
 sub_outlier_quant_method=per-channel
+model_name=roberta-base
 
 python -u train_glue.py \
-    --model-name-or-path roberta-base \
+    --model-name-or-path $model_name \
     --task-name $task_name \
     --max-length 128 \
     --per-device-train-batch-size 32 \
