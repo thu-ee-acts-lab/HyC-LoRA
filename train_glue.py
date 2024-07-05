@@ -76,6 +76,7 @@ metric_key = {
 
 
 def parse_args():
+    # type 1: simple training config
     parser = argparse.ArgumentParser(
         description="Finetune a transformers model on a text classification task"
     )
@@ -344,32 +345,7 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # Sanity checks
-    if (
-        args.task_name is None
-        and args.train_file is None
-        and args.validation_file is None
-    ):
-        raise ValueError("Need either a task name or a training/validation file.")
-    else:
-        if args.train_file is not None:
-            extension = args.train_file.split(".")[-1]
-            assert extension in [
-                "csv",
-                "json",
-            ], "`train_file` should be a csv or a json file."
-        if args.validation_file is not None:
-            extension = args.validation_file.split(".")[-1]
-            assert extension in [
-                "csv",
-                "json",
-            ], "`validation_file` should be a csv or a json file."
-
-    if args.push_to_hub:
-        assert (
-            args.output_dir is not None
-        ), "Need an `output_dir` to create a repo when `--push_to_hub` is passed."
-
+    # type 2: compress config
     compress_config = {
         "linear": {
             "outlier_ratio": args.linear_outlier_ratio,
@@ -908,6 +884,7 @@ def main():
     wandb.define_metric("val_*", step_metric="val_step")
     wandb.log({"trainable_ratio": trainable_ratio})
 
+    # begin training
     for epoch in range(args.num_train_epochs):
         model.train()
         for _, batch in enumerate(train_dataloader):
