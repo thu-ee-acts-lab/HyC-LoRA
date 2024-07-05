@@ -235,7 +235,7 @@ class ModelArguments:
 
 @dataclass
 class DataArguments:
-    data_name: str = field(default="/mnt/usb/gsm8k", metadata={"help": "Dataset name."})
+    data_name: str = field(default="gsm8k", metadata={"help": "Dataset name."})
 
 
 @dataclass
@@ -261,11 +261,11 @@ class GACTTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         loss = super().compute_loss(model, inputs, return_outputs)
-        #! only for debug
-        allocated = torch.cuda.memory_allocated()
-        reserved = torch.cuda.memory_reserved()
-        print("allocated: %.2f MB" % (allocated / 1024 / 1024), flush=True)
-        print("reserved:  %.2f MB" % (reserved / 1024 / 1024), flush=True)
+        # #! only for debug
+        # allocated = torch.cuda.memory_allocated()
+        # reserved = torch.cuda.memory_reserved()
+        # print("allocated: %.2f MB" % (allocated / 1024 / 1024), flush=True)
+        # print("reserved:  %.2f MB" % (reserved / 1024 / 1024), flush=True)
         return loss
 
 
@@ -381,9 +381,9 @@ class DataCollatorForSupervisedDataset(object):
         #! a tricky way to pad the input_ids and labels to 16's multiple
         # 1. find the max length of input_ids
         max_len = max([len(input_id) for input_id in input_ids])
-        # 2. pad the input_ids and labels to 16's multiple
-        max_len = 512  #! only for profile
-        # max_len = (max_len + 7) // 8 * 8
+        # 2. pad the input_ids and labels to 8's multiple
+        # max_len = 512  #! only for profile
+        max_len = (max_len + 7) // 8 * 8
         # 3. generate a max_len tensor
         max_len_tensor = torch.randn(max_len).to(torch.int64)
         # 4. append the max_len tensor to the input_ids and labels
