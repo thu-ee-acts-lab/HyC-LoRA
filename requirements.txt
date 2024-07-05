@@ -1,0 +1,13 @@
+accelerate
+adapter_transformers
+bitsandbytes
+datasets
+flash_attn
+huggingface_hub
+matplotlib
+numpy
+peft
+safetensors
+torch
+transformers
+triton
