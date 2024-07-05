@@ -515,6 +515,14 @@ def replace_module(module, compress_config):
 
         else:
             replace_module(child, compress_config)
+            
+            
+def replace_module_dropout(module, compress_config):
+    for name, child in module.named_children():
+        if isinstance(child, torch.nn.Dropout):
+            setattr(module, name, EfficientMemoryDropout(0.0))
+        else:
+            replace_module_dropout(child, compress_config)
 
 
 def main():
@@ -667,6 +675,7 @@ def main():
 
     # replace efficient modules
     replace_module(model, compress_config)
+    # replace_module_dropout(model, compress_config)
 
     for name, module in model.named_modules():
         module.name = name

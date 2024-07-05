@@ -8,3 +8,8 @@ results/
 
 picture/
 picture_new/
+scripts/
+
+train_cv.py
+
+exp_results/
