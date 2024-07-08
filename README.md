@@ -72,6 +72,7 @@ bash run_gsm8k.sh
 
 ## TODO
 
+* [ ] Integrate the code into [Unsloth](https://github.com/unslothai/unsloth) framework.
 * [ ] Add ProSparse-LLaMA modeling code.
 * [ ] Add LongLoRA finetuning of RedPajama dataset code.
 * [ ] CUDA kernel optimization.
